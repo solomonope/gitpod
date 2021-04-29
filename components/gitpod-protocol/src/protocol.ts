@@ -634,6 +634,7 @@ export interface PrebuiltWorkspace {
     state: PrebuiltWorkspaceState;
     error?: string;
     snapshot?: string;
+    parentPrebuildId?: string;
 }
 
 export namespace PrebuiltWorkspace {
@@ -877,6 +878,9 @@ export interface Commit {
 
     // refType is only set if ref is present (and not for old workspaces, before this feature was added)
     refType?: RefType
+
+    // Might contain the recent commit history for this commit (used for incremental prebuilds)
+    history?: string[]
 }
 
 export interface CommitContext extends WorkspaceContext, Commit {

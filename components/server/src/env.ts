@@ -46,16 +46,25 @@ export class Env extends AbstractComponentEnv {
     })()
 
     readonly previewFeatureFlags: NamedWorkspaceFeatureFlag[] = (() => {
-        const value = process.env.EXPERIMENTAL_FEATURE_FLAGS;
-        if (!value) {
-          return [];
-        }
-        const flags = JSON.parse(value);
-        if (!Array.isArray(flags)) {
-          throw new Error(`EXPERIMENTAL_FEATURE_FLAGS should be an Array: ${value}`);
-        }
-        return flags;
+        return this.parseStringArray('EXPERIMENTAL_FEATURE_FLAGS') as NamedWorkspaceFeatureFlag[];
     })();
+
+    protected parseStringArray(name: string): string[] {
+        const json = process.env[name];
+        if (!json) {
+            return [];
+        }
+        let value;
+        try {
+            value = JSON.parse(json);
+        } catch (error) {
+            throw new Error(`Could not parse ${name}: ${error}`);
+        }
+        if (!Array.isArray(value) || value.some(e => typeof e !== 'string')) {
+            throw `${name} should be an array of string: ${json}`;
+        }
+        return value;
+    }
 
     readonly gitpodRegion: string = process.env.GITPOD_REGION || 'unknown';
 
@@ -110,6 +119,15 @@ export class Env extends AbstractComponentEnv {
     // maxConcurrentPrebuildsPerRef is the maximum number of prebuilds we allow per ref type at any given time
     readonly maxConcurrentPrebuildsPerRef = Number.parseInt(process.env.MAX_CONCUR_PREBUILDS_PER_REF || '10', 10) || 10;
 
+    readonly incrementalPrebuildsRepositoryPassList: string[] = (() => {
+        try {
+            const list = this.parseStringArray('INCREMENTAL_PREBUILDS_REPO_PASSLIST');
+            return list;
+        } catch (error) {
+            console.error(error);
+            return [];
+        }
+    })()
 
     protected gitpodLayernameFromFilesystem: string | null | undefined;
     protected readGitpodLayernameFromFilesystem(): string | undefined {
@@ -139,19 +157,10 @@ export class Env extends AbstractComponentEnv {
 
     readonly blockNewUsers: boolean = this.parseBool("BLOCK_NEW_USERS");
     readonly blockNewUsersPassList: string[] = (() => {
-        const l = process.env.BLOCK_NEW_USERS_PASSLIST;
-        if (!l) {
-            return [];
-        }
         try {
-            const res = JSON.parse(l);
-            if (!Array.isArray(res) || res.some(e => typeof e !== 'string')) {
-                console.error("BLOCK_NEW_USERS_PASSLIST is not an array of string");
-                return [];
-            }
-            return res;
-        } catch (err) {
-            console.error("cannot parse BLOCK_NEW_USERS_PASSLIST", err);
+            return this.parseStringArray('BLOCK_NEW_USERS_PASSLIST');
+        } catch (error) {
+            console.error(error);
             return [];
         }
     })();
@@ -163,26 +172,17 @@ export class Env extends AbstractComponentEnv {
 
     /** defaultBaseImageRegistryWhitelist is the list of registryies users get acces to by default */
     readonly defaultBaseImageRegistryWhitelist: string[] = (() => {
-        const wljson = process.env.GITPOD_BASEIMG_REGISTRY_WHITELIST;
-        if (!wljson) {
-            return [];
-        }
-
-        return JSON.parse(wljson);
+        return this.parseStringArray('GITPOD_BASEIMG_REGISTRY_WHITELIST');
     })()
 
     readonly defaultFeatureFlags: NamedWorkspaceFeatureFlag[] = (() => {
-        const json = process.env.GITPOD_DEFAULT_FEATURE_FLAGS;
-        if (!json) {
+        try {
+            const r = (this.parseStringArray('GITPOD_DEFAULT_FEATURE_FLAGS') as NamedWorkspaceFeatureFlag[]);
+            return r.filter(e => e in WorkspaceFeatureFlags);
+        } catch (error) {
+            console.error(error);
             return [];
         }
-
-        let r = JSON.parse(json);
-        if (!Array.isArray(r)) {
-            return [];
-        }
-        r = r.filter(e => e in WorkspaceFeatureFlags);
-        return r;
     })();
 
     /** defaults to: false */

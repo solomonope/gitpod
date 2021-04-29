@@ -271,6 +271,7 @@ components:
     wsman: []
     defaultBaseImageRegistryWhitelist: []
     defaultFeatureFlags: []
+    incrementalPrebuildsRepoPasslist: []
     ports:
       http:
         expose: true

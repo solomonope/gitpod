@@ -33,7 +33,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
             if (moreSegments.length > 0) {
                 switch (moreSegments[0]) {
                     case 'pull': {
-                        return await this.handlePullRequestContext({span}, user, host, owner, repoName, parseInt(moreSegments[1]));
+                        return await this.handlePullRequestContext({span}, user, host, owner, repoName, parseInt(moreSegments[1], 10));
                     }
                     case 'tree':
                     case 'blob':
@@ -41,7 +41,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                         return await this.handleTreeContext({span}, user, host, owner, repoName, moreSegments.slice(1));
                     }
                     case 'issues': {
-                        return await this.handleIssueContext({span}, user, host, owner, repoName, parseInt(moreSegments[1]));
+                        return await this.handleIssueContext({span}, user, host, owner, repoName, parseInt(moreSegments[1], 10));
                     }
                     case 'commit': {
                         return await this.handleCommitContext({span}, user, host, owner, repoName, moreSegments[1]);
@@ -72,13 +72,16 @@ export class GithubContextParser extends AbstractContextParser implements IConte
 
         try {
             const result: any = await this.githubQueryApi.runQuery(user, `
-            query {
+                query {
                     repository(name: "${repoName}", owner: "${owner}") {
                         ${this.repoProperties()}
                         defaultBranchRef {
                             name,
                             target {
-                                oid
+                                oid,
+                                ... on Commit {
+                                    ${this.commitHistoryProperty()}
+                                }
                             }
                         },
                     }
@@ -99,6 +102,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                 ref,
                 refType,
                 revision: defaultBranch && defaultBranch.target.oid || '',
+                history: defaultBranch && this.toCommitHistory(defaultBranch.target) || undefined,
                 repository: this.toRepository(host, result.data.repository)
             }
         } catch (e) {
@@ -133,13 +137,19 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                                 }
                             }
                             commit: object(expression: "${branchNameOrCommitHash}") {
-                                oid
+                                oid,
+                                ... on Commit {
+                                    ${this.commitHistoryProperty()}
+                                }
                             }
                             ref(qualifiedName: "${branchNameOrCommitHash}") {
                                 name
                                 prefix
                                 target {
-                                    oid
+                                    oid,
+                                    ... on Commit {
+                                        ${this.commitHistoryProperty()}
+                                    }
                                 }
                             }
                         }
@@ -162,6 +172,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                         path,
                         title: `${owner}/${repoName} - ${repo.ref.name}`,
                         revision: repo.ref.target.oid,
+                        history: this.toCommitHistory(repo.ref.target),
                         repository
                     };
                 }
@@ -173,6 +184,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                         path,
                         title: `${owner}/${repoName} - ${shortRevision}:${path}`,
                         revision,
+                        history: this.toCommitHistory(repo.commit),
                         repository
                     };
                 }
@@ -210,24 +222,25 @@ export class GithubContextParser extends AbstractContextParser implements IConte
 
         try {
             const result: any = await this.githubQueryApi.runQuery(user, `
-                    query {
-                        repository(name: "${repoName}", owner: "${owner}") {
-                            object(oid: "${sha}") {
-                                oid,
-                                ... on Commit {
-                                    messageHeadline
-                                }
+                query {
+                    repository(name: "${repoName}", owner: "${owner}") {
+                        object(oid: "${sha}") {
+                            oid,
+                            ... on Commit {
+                                messageHeadline,
+                                ${this.commitHistoryProperty()}
                             }
-                            ${this.repoProperties()}
-                            defaultBranchRef {
-                                name,
-                                target {
-                                    oid
-                                }
-                            },
                         }
+                        ${this.repoProperties()}
+                        defaultBranchRef {
+                            name,
+                            target {
+                                oid
+                            }
+                        },
                     }
-                `);
+                }
+            `);
             span.log({"request.finished": ""});
 
             if (result.data.repository === null) {
@@ -247,6 +260,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                 title: `${owner}/${repoName} - ${commit.messageHeadline}`,
                 owner,
                 revision: sha,
+                history: this.toCommitHistory(commit),
                 repository: this.toRepository(host, result.data.repository),
             };
         } catch (e) {
@@ -264,30 +278,33 @@ export class GithubContextParser extends AbstractContextParser implements IConte
             const result: any = await this.githubQueryApi.runQuery(user, `
                 query {
                     repository(name: "${repoName}", owner: "${owner}") {
-                    pullRequest(number: ${pullRequestNr}) {
-                        title
-                        headRef {
-                        name
-                        repository {
-                            ${this.repoProperties()}
+                        pullRequest(number: ${pullRequestNr}) {
+                            title
+                            headRef {
+                                name
+                                repository {
+                                    ${this.repoProperties()}
+                                }
+                                target {
+                                    oid,
+                                    ... on Commit {
+                                        ${this.commitHistoryProperty()}
+                                    }
+                                }
+                            }
+                            baseRef {
+                                name
+                                repository {
+                                    ${this.repoProperties()}
+                                }
+                                target {
+                                    oid
+                                }
+                            }
                         }
-                        target {
-                            oid
-                        }
-                        }
-                        baseRef {
-                        name
-                        repository {
-                            ${this.repoProperties()}
-                        }
-                        target {
-                            oid
-                        }
-                        }
-                    }
                     }
                 }
-                `);
+            `);
             span.log({"request.finished": ""});
 
             if (result.data.repository === null) {
@@ -311,6 +328,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                 ref: pr.headRef.name,
                 refType: "branch",
                 revision: pr.headRef.target.oid,
+                history: this.toCommitHistory(pr.headRef.target),
                 nr: pullRequestNr,
                 base: {
                     repository: this.toRepository(host, pr.baseRef.repository),
@@ -331,21 +349,24 @@ export class GithubContextParser extends AbstractContextParser implements IConte
 
         try {
             const result: any = await this.githubQueryApi.runQuery(user, `
-                    query {
-                        repository(name: "${repoName}", owner: "${owner}") {
-                            issue(number: ${issueNr}) {
-                                title
-                            }
-                            ${this.repoProperties()}
-                            defaultBranchRef {
-                                name,
-                                target {
-                                    oid
-                                }
-                            },
+                query {
+                    repository(name: "${repoName}", owner: "${owner}") {
+                        issue(number: ${issueNr}) {
+                            title
                         }
+                        ${this.repoProperties()}
+                        defaultBranchRef {
+                            name,
+                            target {
+                                oid,
+                                ... on Commit {
+                                    ${this.commitHistoryProperty()}
+                                }
+                            }
+                        },
                     }
-                `);
+                }
+            `);
             span.log({"request.finished": ""});
 
             if (result.data.repository === null) {
@@ -373,6 +394,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                 ref,
                 refType,
                 revision: branchRef && branchRef.target.oid || '',
+                history: branchRef && this.toCommitHistory(branchRef.target) || undefined,
                 repository: this.toRepository(host, result.data.repository)
             };
         } catch (e) {
@@ -414,6 +436,35 @@ export class GithubContextParser extends AbstractContextParser implements IConte
             ${parents > 0 ? `parent {
                 ${this.repoProperties(parents - 1)}
             }` : ''}
+        `;
+    }
+
+    /**
+     * Returns the linear commit history starting from (but excluding) the given commit, in the same order as `git log`.
+     */
+    protected toCommitHistory(commit: any): string[] | undefined {
+        return commit.history?.edges.slice(1).map((e: any) => e.node.oid) || undefined
+    }
+
+    /**
+     * Fetches the commit history of a commit (used to find a relevant base for incremental prebuilds)
+     *
+     * FIXME: To get more results than GitHub API's max page size (seems to be 100), pagination should be handled.
+     * These additional history properties may be helfpul:
+     *     totalCount,
+     *     pageInfo {
+     *         haxNextPage,
+     *     }
+     * */
+    protected commitHistoryProperty(maxDepth: number = 100, maxAgeMs: number = 1000 * 3600 * 24 * 10): string {
+        return `
+            history(first: ${maxDepth}, since: "${new Date(Date.now() - maxAgeMs).toISOString()}") {
+                edges {
+                    node {
+                        oid
+                    }
+                }
+            }
         `;
     }
 }

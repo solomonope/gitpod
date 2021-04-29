@@ -549,7 +549,8 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
 
             const logCtx: LogContext = { userId: user.id };
             const cloneUrl = context.repository.cloneUrl;
-            const prebuiltWorkspace = await this.workspaceDb.trace({ span }).findPrebuiltWorkspaceByCommit(context.repository.cloneUrl, context.revision);
+            // TODO: Use `context.history` to find the last successful (full/incremental) prebuild
+            const prebuiltWorkspace = await this.workspaceDb.trace({ span }).findPrebuiltWorkspaceByCommit(cloneUrl, context.revision);
             const logPayload = { mode, cloneUrl, commit: context.revision, prebuiltWorkspace };
             log.debug(logCtx, "Looking for prebuilt workspace: ", logPayload);
             if (!prebuiltWorkspace) {
@@ -567,6 +568,7 @@ export class GitpodServerEEImpl<C extends GitpodClient, S extends GitpodServer> 
             } else if (prebuiltWorkspace.state === 'queued' || prebuiltWorkspace.state === 'building') {
                 if (mode === CreateWorkspaceMode.ForceNew) {
                     // in force mode we ignore running prebuilds as we want to start a workspace as quickly as we can.
+                    // TODO: Fall back to `prebuiltWorkspace.parentPrebuildId` if it's available (i.e. finished successfully)
                     return;
                 }
 
