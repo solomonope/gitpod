@@ -697,18 +697,22 @@ export abstract class AbstractTypeORMWorkspaceDBImpl extends AbstractWorkspaceDB
 
 
     public async findAllWorkspaceAndInstances(offset: number, limit: number, orderBy: keyof WorkspaceAndInstance, orderDir: "ASC" | "DESC", ownerId?: string, searchTerm?: string): Promise<{ total: number, rows: WorkspaceAndInstance[] }> {
-        let joinConditions = [];
-        let searchConditions = [];
-        let joinConditionParams: any = {};
+        let whereConditions = ['wsi2.id IS NULL'];
+        let whereConditionParams: any = {};
+
         if (!!ownerId) {
-            joinConditions.push("ws.ownerId = :ownerId");
-            joinConditionParams.ownerId = ownerId;
+            // If an owner id is provided only search for workspaces belonging to that user.
+            whereConditions.push("ws.ownerId = :ownerId");
+            whereConditionParams.ownerId = ownerId;
         }
 
         if (!!searchTerm) {
-            searchConditions.push(`ws.contextUrl LIKE '%${searchTerm}%'`);
-            searchConditions.push(`ws.id LIKE '%${searchTerm}%'`);
-            searchConditions.push(`wsi.id LIKE '%${searchTerm}%'`);
+            // If a search term is provided perform a wildcard search in the context url, workspace id (aka workspace name), and instance id
+            whereConditions.push([
+                `ws.contextUrl LIKE '%${searchTerm}%'`,
+                `ws.id LIKE '%${searchTerm}%'`,
+                `wsi.id LIKE '%${searchTerm}%'`
+            ].join(' OR '))
         }
 
         let orderField: string = orderBy;
@@ -722,9 +726,6 @@ export abstract class AbstractTypeORMWorkspaceDBImpl extends AbstractWorkspaceDB
             case "ownerId": orderField = "wsi.ownerId"; break;
         }
 
-        // TODO: See if I can simplify or at least document this
-        const where = [ ... joinConditions, 'wsi2.id IS NULL', searchConditions.join(' OR ') ].join(' AND ') 
-
         // We need to select the latest wsi for a workspace
         // see https://stackoverflow.com/questions/2111384/sql-join-selecting-the-last-records-in-a-one-to-many-relationship for how this works
         const workspaceRepo = await this.getWorkspaceRepo();
@@ -737,7 +738,7 @@ export abstract class AbstractTypeORMWorkspaceDBImpl extends AbstractWorkspaceDB
                 'wsi2.workspaceId = ws.id',
                 '(wsi.creationTime < wsi2.creationTime OR (wsi.creationTime = wsi2.creationTime AND wsi.id < wsi2.id))'
             ].join(' AND '))
-            .where(where, joinConditionParams)
+            .where(whereConditions.join(' AND '), whereConditionParams)
             .orderBy(orderField, orderDir)
             .take(limit)
             .skip(offset);
