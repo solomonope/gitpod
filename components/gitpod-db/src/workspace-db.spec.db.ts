@@ -232,5 +232,15 @@ import { DBWorkspaceInstance } from './typeorm/entity/db-workspace-instance';
             expect(dbResult.length).to.eq(0);
         });
     }
+
+    @test(timeout(10000))
+    public async testFindAllWorkspaceAndInstances_workspaceId() {
+        expect(true).to.be.false
+    }
+
+    @test(timeout(10000))
+    public async testFindAllWorkspaceAndInstances_instanceId() {
+        expect(true).to.be.false
+    }
 }
 module.exports = new WorkspaceDBSpec()

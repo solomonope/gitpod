@@ -707,11 +707,11 @@ export abstract class AbstractTypeORMWorkspaceDBImpl extends AbstractWorkspaceDB
         }
 
         if (!!searchTerm) {
-            // If a search term is provided perform a wildcard search in the context url, workspace id (aka workspace name), and instance id
+            // If a search term is provided perform a wildcard search in the context url or exact match on the workspace id (aka workspace name) or the instance id.
             whereConditions.push([
                 `ws.contextUrl LIKE '%${searchTerm}%'`,
-                `ws.id LIKE '%${searchTerm}%'`,
-                `wsi.id LIKE '%${searchTerm}%'`
+                `ws.id = '${searchTerm}'`,
+                `wsi.id = '${searchTerm}'`
             ].join(' OR '))
         }
 
