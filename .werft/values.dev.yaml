@@ -155,6 +155,12 @@ components:
     wsManagerProxy:
       enabled: true
     ports:
+      httpProxy:
+        expose: true
+        containerPort: 8080
+      httpsProxy:
+        expose: true
+        containerPort: 9090
       wsManagerProxy:
         expose: true
         containerPort: 8081
