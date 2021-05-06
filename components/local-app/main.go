@@ -9,13 +9,18 @@ import (
 
 	"context"
 	"errors"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	gitpod "github.com/gitpod-io/gitpod/gitpod-protocol"
 	"github.com/gitpod-io/local-app/pkg/auth"
 	"github.com/gitpod-io/local-app/pkg/bastion"
+	"github.com/gorilla/handlers"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"github.com/zalando/go-keyring"
@@ -88,12 +93,21 @@ func run(host, sshConfig string) error {
 		return err
 	}
 
+	domainRegex := strings.ReplaceAll(host, ".", "\\.")
+	originRegex, err := regexp.Compile(".*" + domainRegex)
+	// TODO(ak) exclude subdomains for 3rd party content, like port location, minibrowser, webviews, and so on
+	if err != nil {
+		return err
+	}
+
 	cb := bastion.CompositeCallbacks{
 		&logCallbacks{},
 	}
 	if sshConfig != "" {
 		cb = append(cb, &bastion.SSHConfigWritingCallback{Path: sshConfig})
 	}
+
+	var b *bastion.Bastion
 
 	wshost := host
 	wshost = strings.ReplaceAll(wshost, "https://", "wss://")
@@ -103,11 +117,49 @@ func run(host, sshConfig string) error {
 		Context: context.Background(),
 		Token:   tkn,
 		Log:     logrus.NewEntry(logrus.New()),
+		ReconnectionHandler: func() {
+			if b != nil {
+				b.FullUpdate()
+			}
+		},
 	})
 	if err != nil {
 		return err
 	}
-	b := bastion.New(client, cb)
+
+	b = bastion.New(client, cb)
+	go http.ListenAndServe("localhost:5000", handlers.CORS(
+		handlers.AllowedOriginValidator(func(origin string) bool {
+			// Is the origin a subdomain of the installations hostname?
+			matches := originRegex.Match([]byte(origin))
+			return matches
+		}),
+		handlers.AllowedOrigins([]string{host}),
+		handlers.AllowedMethods([]string{
+			"GET",
+			"OPTIONS",
+		}),
+		handlers.MaxAge(60),
+		handlers.OptionStatusCode(200),
+	)(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		segs := strings.Split(r.URL.Path, "/")
+		if len(segs) < 3 {
+			http.Error(rw, "invalid URL Path", http.StatusBadRequest)
+			return
+		}
+		worksapceID := segs[1]
+		port, err := strconv.Atoi(segs[2])
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
+		}
+		localAddr, err := b.GetTunnelLocalAddr(worksapceID, uint32(port))
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusNotFound)
+			return
+		}
+		fmt.Fprintf(rw, localAddr)
+	})))
 	return b.Run()
 }
 
