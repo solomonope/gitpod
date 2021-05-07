@@ -78,10 +78,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                         defaultBranchRef {
                             name,
                             target {
-                                oid,
-                                ... on Commit {
-                                    ${this.commitHistoryProperty()}
-                                }
+                                oid
                             }
                         },
                     }
@@ -102,7 +99,6 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                 ref,
                 refType,
                 revision: defaultBranch && defaultBranch.target.oid || '',
-                history: defaultBranch && this.toCommitHistory(defaultBranch.target) || undefined,
                 repository: this.toRepository(host, result.data.repository)
             }
         } catch (e) {
@@ -137,19 +133,13 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                                 }
                             }
                             commit: object(expression: "${branchNameOrCommitHash}") {
-                                oid,
-                                ... on Commit {
-                                    ${this.commitHistoryProperty()}
-                                }
+                                oid
                             }
                             ref(qualifiedName: "${branchNameOrCommitHash}") {
                                 name
                                 prefix
                                 target {
-                                    oid,
-                                    ... on Commit {
-                                        ${this.commitHistoryProperty()}
-                                    }
+                                    oid
                                 }
                             }
                         }
@@ -172,7 +162,6 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                         path,
                         title: `${owner}/${repoName} - ${repo.ref.name}`,
                         revision: repo.ref.target.oid,
-                        history: this.toCommitHistory(repo.ref.target),
                         repository
                     };
                 }
@@ -184,7 +173,6 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                         path,
                         title: `${owner}/${repoName} - ${shortRevision}:${path}`,
                         revision,
-                        history: this.toCommitHistory(repo.commit),
                         repository
                     };
                 }
@@ -227,8 +215,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                         object(oid: "${sha}") {
                             oid,
                             ... on Commit {
-                                messageHeadline,
-                                ${this.commitHistoryProperty()}
+                                messageHeadline
                             }
                         }
                         ${this.repoProperties()}
@@ -260,7 +247,6 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                 title: `${owner}/${repoName} - ${commit.messageHeadline}`,
                 owner,
                 revision: sha,
-                history: this.toCommitHistory(commit),
                 repository: this.toRepository(host, result.data.repository),
             };
         } catch (e) {
@@ -286,10 +272,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                                     ${this.repoProperties()}
                                 }
                                 target {
-                                    oid,
-                                    ... on Commit {
-                                        ${this.commitHistoryProperty()}
-                                    }
+                                    oid
                                 }
                             }
                             baseRef {
@@ -328,7 +311,6 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                 ref: pr.headRef.name,
                 refType: "branch",
                 revision: pr.headRef.target.oid,
-                history: this.toCommitHistory(pr.headRef.target),
                 nr: pullRequestNr,
                 base: {
                     repository: this.toRepository(host, pr.baseRef.repository),
@@ -358,10 +340,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                         defaultBranchRef {
                             name,
                             target {
-                                oid,
-                                ... on Commit {
-                                    ${this.commitHistoryProperty()}
-                                }
+                                oid
                             }
                         },
                     }
@@ -394,7 +373,6 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                 ref,
                 refType,
                 revision: branchRef && branchRef.target.oid || '',
-                history: branchRef && this.toCommitHistory(branchRef.target) || undefined,
                 repository: this.toRepository(host, result.data.repository)
             };
         } catch (e) {
@@ -439,32 +417,57 @@ export class GithubContextParser extends AbstractContextParser implements IConte
         `;
     }
 
-    /**
-     * Returns the linear commit history starting from (but excluding) the given commit, in the same order as `git log`.
-     */
-    protected toCommitHistory(commit: any): string[] | undefined {
-        return commit.history?.edges.slice(1).map((e: any) => e.node.oid) || undefined
-    }
+    public async fetchCommitHistory(ctx: TraceContext, user: User, contextUrl: string, sha: string): Promise<string[]> {
+        const span = TraceContext.startSpan("GithubContextParser.fetchCommitHistory", ctx);
+        const maxDepth = 100;
+        const maxAgeMs = 1000 * 3600 * 24 * 10;
 
-    /**
-     * Fetches the commit history of a commit (used to find a relevant base for incremental prebuilds)
-     *
-     * FIXME: To get more results than GitHub API's max page size (seems to be 100), pagination should be handled.
-     * These additional history properties may be helfpul:
-     *     totalCount,
-     *     pageInfo {
-     *         haxNextPage,
-     *     }
-     * */
-    protected commitHistoryProperty(maxDepth: number = 100, maxAgeMs: number = 1000 * 3600 * 24 * 10): string {
-        return `
-            history(first: ${maxDepth}, since: "${new Date(Date.now() - maxAgeMs).toISOString()}") {
-                edges {
-                    node {
-                        oid
+        try {
+            if (sha.length != 40) {
+                throw new Error(`Invalid commit ID ${sha}.`);
+            }
+
+            // FIXME: To get more results than GitHub API's max page size (seems to be 100), pagination should be handled.
+            // These additional history properties may be helfpul:
+            //     totalCount,
+            //     pageInfo {
+            //         haxNextPage,
+            //     },
+            const { owner, repoName } = await this.parseURL(user, contextUrl);
+            const result: any = await this.githubQueryApi.runQuery(user, `
+                query {
+                    repository(name: "${repoName}", owner: "${owner}") {
+                        object(oid: "${sha}") {
+                            ... on Commit {
+                                history(first: ${maxDepth}, since: "${new Date(Date.now() - maxAgeMs).toISOString()}") {
+                                    edges {
+                                        node {
+                                            oid
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+            `);
+            span.log({"request.finished": ""});
+
+            if (result.data.repository === null) {
+                throw await NotFoundError.create(await this.tokenHelper.getCurrentToken(user), user, this.config.host, owner, repoName);
             }
-        `;
+
+            const commit = result.data.repository.object;
+            if (commit === null) {
+                throw new Error(`Couldn't find commit ${sha} in repository ${owner}/${repoName}.`);
+            }
+
+            return commit.history.edges.slice(1).map((e: any) => e.node.oid) || [];
+        } catch (e) {
+            span.log({"error": e});
+            throw e;
+        } finally {
+            span.finish();
+        }
     }
 }

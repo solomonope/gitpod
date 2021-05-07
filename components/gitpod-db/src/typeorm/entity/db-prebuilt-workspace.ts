@@ -50,12 +50,4 @@ export class DBPrebuiltWorkspace implements PrebuiltWorkspace {
         transformer: Transformer.MAP_EMPTY_STR_TO_UNDEFINED
     })
     error?: string;
-
-    @Column({
-        ...TypeORM.UUID_COLUMN_TYPE,
-        default: '',
-        transformer: Transformer.MAP_EMPTY_STR_TO_UNDEFINED
-    })
-    @Index('ind_parentPrebuildId')
-    parentPrebuildId?: string;
 }

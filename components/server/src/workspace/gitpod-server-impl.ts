@@ -810,6 +810,7 @@ export class GitpodServerImpl<Client extends GitpodClient, Server extends Gitpod
                 span.log({ prebuild: "available" });
                 context = prebuiltWorkspace;
             }
+            // TODO Incremental prebuilds: Fetch context parser commit history to look for older successful prebuild?
 
             const workspace = await this.workspaceFactory.createForContext({ span }, user, context, normalizedContextUrl);
             try {

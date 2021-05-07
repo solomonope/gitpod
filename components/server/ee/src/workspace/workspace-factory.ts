@@ -60,7 +60,7 @@ export class WorkspaceFactoryEE extends WorkspaceFactory {
             let parentPrebuild;
 
             // Find an older full prebuild to start an incremental prebuild
-            for (const parent of (commitContext.history || [])) {
+            for (const parent of (context.commitHistory || [])) {
                 parentPrebuild = await this.db.trace({span}).findPrebuiltWorkspaceByCommit(commitContext.repository.cloneUrl, parent);
                 if (!!parentPrebuild) {
                     log.debug(`Found parent prebuild for ${commitContext.revision}`, parentPrebuild);
@@ -88,8 +88,7 @@ export class WorkspaceFactoryEE extends WorkspaceFactory {
                 cloneURL: commitContext.repository.cloneUrl,
                 commit: commitContext.revision,
                 state: "queued",
-                creationTime: new Date().toISOString(),
-                ... (!!parentPrebuild ? { parentPrebuildId: parentPrebuild.id } : {})
+                creationTime: new Date().toISOString()
             });
 
             log.debug({ userId: user.id, workspaceId: ws.id }, `Registered workspace prebuild: ${pws.id} for ${commitContext.repository.cloneUrl}:${commitContext.revision}`);

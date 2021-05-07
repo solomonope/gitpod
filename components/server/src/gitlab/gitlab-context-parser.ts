@@ -339,4 +339,9 @@ export class GitlabContextParser extends AbstractContextParser implements IConte
             repository,
         };
     }
+
+    public async fetchCommitHistory(ctx: TraceContext, user: User, contextUrl: string, commit: string): Promise<string[]> {
+        // FIXME
+        return [];
+    }
 }

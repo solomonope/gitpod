@@ -33,4 +33,8 @@ export class SnapshotContextParser implements IContextParser {
         }
     }
 
+    public async fetchCommitHistory(ctx: TraceContext, user: User, contextUrl: string, commit: string): Promise<string[]> {
+        throw new Error('SnapshotContextParser does not support fetching commit history');
+    }
+
 }

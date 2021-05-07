@@ -259,4 +259,9 @@ export class BitbucketContextParser extends AbstractContextParser implements ICo
 
         return result;
     }
+
+    public async fetchCommitHistory(ctx: TraceContext, user: User, contextUrl: string, commit: string): Promise<string[]> {
+        // FIXME
+        return [];
+    }
 }
