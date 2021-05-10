@@ -57,23 +57,32 @@ export class WorkspaceFactoryEE extends WorkspaceFactory {
             }
 
             let ws;
-            let parentPrebuild;
 
             // Find an older full prebuild to start an incremental prebuild
             for (const parent of (context.commitHistory || [])) {
-                parentPrebuild = await this.db.trace({span}).findPrebuiltWorkspaceByCommit(commitContext.repository.cloneUrl, parent);
-                if (!!parentPrebuild) {
-                    log.debug(`Found parent prebuild for ${commitContext.revision}`, parentPrebuild);
-                    if (parentPrebuild.state === 'available') {
-                        const incrementalPrebuildContext: PrebuiltWorkspaceContext = {
-                            title: `Incremental prebuild of "${commitContext.title}"`,
-                            originalContext: commitContext,
-                            prebuiltWorkspace: parentPrebuild,
-                        }
-                        ws = await this.createForPrebuiltWorkspace({span}, user, incrementalPrebuildContext, normalizedContextURL);
-                        break;
-                    }
+                const parentPrebuild = await this.db.trace({span}).findPrebuiltWorkspaceByCommit(commitContext.repository.cloneUrl, parent);
+                if (!parentPrebuild) {
+                    continue;
                 }
+                log.debug(`Considering parent prebuild for ${commitContext.revision}`, parentPrebuild);
+                if (parentPrebuild.state !== 'available') {
+                    continue;
+                }
+                const buildWorkspace = await this.db.trace({span}).findById(parentPrebuild.buildWorkspaceId);
+                if (!buildWorkspace) {
+                    continue;
+                }
+                if (!!buildWorkspace.basedOnPrebuildId) {
+                    continue;
+                }
+                // FIXME: If the workspace image (ref or dockerfile commit) has changed, or if the prebuild tasks have changed, the prebuild is no longer relevant
+                const incrementalPrebuildContext: PrebuiltWorkspaceContext = {
+                    title: `Incremental prebuild of "${commitContext.title}"`,
+                    originalContext: commitContext,
+                    prebuiltWorkspace: parentPrebuild,
+                }
+                ws = await this.createForPrebuiltWorkspace({span}, user, incrementalPrebuildContext, normalizedContextURL);
+                break;
             }
 
             if (!ws) {

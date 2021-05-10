@@ -23,6 +23,7 @@ export class StartPrebuildContextParser implements IPrefixContextParser {
             throw new Error("cannot start prebuilds on an issue context")
         }
 
+        // FIXME: The manual prebuild prefix forces non-incremental prebuilds. How to trigger incremental prebuilds?
         const result: StartPrebuildContext = {
             title: `Prebuild of "${context.title}"`,
             actual: context
