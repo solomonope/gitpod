@@ -27,7 +27,8 @@ export namespace Transformer {
     export const MAP_ISO_STRING_TO_TIMESTAMP_DROP: ValueTransformer = {
         to(value: any): any {
             // DROP all input values as they are set by the DB 'ON UPDATE'/ as default value
-            return undefined;
+            // HACK: Emulate `ON UPDATE CURRENT_TIMESTAMP(6)` to work around https://github.com/gitpod-io/gitpod/issues/4169
+            return new Date().toISOString().replace('T', ' ').replace('Z', '000');
         },
         from(value: any): any {
             // From TIMESTAMP to ISO string
