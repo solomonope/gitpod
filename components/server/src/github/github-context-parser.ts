@@ -420,7 +420,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
     public async fetchCommitHistory(ctx: TraceContext, user: User, contextUrl: string, sha: string): Promise<string[]> {
         const span = TraceContext.startSpan("GithubContextParser.fetchCommitHistory", ctx);
         const maxDepth = 100;
-        const maxAgeMs = 1000 * 3600 * 24 * 10;
+        // const maxAgeMs = 1000 * 3600 * 24 * 10;
 
         try {
             if (sha.length != 40) {
@@ -439,7 +439,7 @@ export class GithubContextParser extends AbstractContextParser implements IConte
                     repository(name: "${repoName}", owner: "${owner}") {
                         object(oid: "${sha}") {
                             ... on Commit {
-                                history(first: ${maxDepth}, since: "${new Date(Date.now() - maxAgeMs).toISOString()}") {
+                                history(first: ${maxDepth}` + /* , since: "${new Date(Date.now() - maxAgeMs).toISOString()}" */ `) {
                                     edges {
                                         node {
                                             oid
