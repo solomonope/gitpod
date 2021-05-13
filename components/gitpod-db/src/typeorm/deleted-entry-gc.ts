@@ -47,4 +47,3 @@ interface TableWithDeletion {
     name: string;
     deletionColumn: string;
 }
-
