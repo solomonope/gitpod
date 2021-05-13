@@ -24,7 +24,7 @@ echo "$BINARY: Starting rewiring libs to $DST"
 [ -d "$DST" ] || mkdir -p "$DST"
 
 INTERPRETER_ORIG=$(patchelf --print-interpreter $BINARY 2>/dev/null)
-if [ ! -z "$INTERPRETER_ORIG" ]; then
+if [ -n "$INTERPRETER_ORIG" ]; then
     INTERPRETER_DST="${DST}$(basename $INTERPRETER_ORIG)"
     [ -f "${INTERPRETER_DST}" ] || cp "${INTERPRETER_ORIG}" "${INTERPRETER_DST}"
     patchelf --set-interpreter "${INTERPRETER_DST}" "${BINARY}"

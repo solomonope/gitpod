@@ -18,7 +18,7 @@ go_protoc() {
     local ROOT_DIR=$1
 
     protoc \
-        -I /usr/lib/protoc/include -I$ROOT_DIR -I. \
+        -I /usr/lib/protoc/include -I"$ROOT_DIR" -I. \
         --go_out=go \
         --go_opt=paths=source_relative \
         --go-grpc_out=go \
@@ -38,22 +38,22 @@ typescript_protoc() {
 
     yarn install
 
-    rm -rf $MODULE_DIR/typescript/src/*pb*.*
+    rm -rf "$MODULE_DIR"/typescript/src/*pb*.*
 
     protoc \
-        --plugin=protoc-gen-grpc=$MODULE_DIR/typescript/node_modules/.bin/grpc_tools_node_protoc_plugin \
+        --plugin=protoc-gen-grpc="$MODULE_DIR"/typescript/node_modules/.bin/grpc_tools_node_protoc_plugin \
         --js_out=import_style=commonjs,binary:src \
         --grpc_out=grpc_js:src \
-        -I /usr/lib/protoc/include -I$ROOT_DIR -I. -I$MODULE_DIR \
-        $MODULE_DIR/*.proto
+        -I /usr/lib/protoc/include -I"$ROOT_DIR" -I. -I"$MODULE_DIR" \
+        "$MODULE_DIR"/*.proto
 
     protoc \
-        --plugin=protoc-gen-ts=$MODULE_DIR/typescript/node_modules/.bin/protoc-gen-ts \
+        --plugin=protoc-gen-ts="$MODULE_DIR"/typescript/node_modules/.bin/protoc-gen-ts \
         --ts_out=grpc_js:src \
-        -I /usr/lib/protoc/include -I$ROOT_DIR -I. -I$MODULE_DIR \
-        $MODULE_DIR/*.proto
+        -I /usr/lib/protoc/include -I"$ROOT_DIR" -I. -I"$MODULE_DIR" \
+        "$MODULE_DIR"/*.proto
 
-    ls -1 $MODULE_DIR/typescript/src/*_pb.d.ts | xargs sed -i -e "s/[[:space:]]*$//"
+    ls -1 "$MODULE_DIR"/typescript/src/*_pb.d.ts | xargs sed -i -e "s/[[:space:]]*$//"
 
     popd > /dev/null
 }

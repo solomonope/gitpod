@@ -9,7 +9,7 @@
  # the bash history.
  set +o history
  history -c
- truncate -s 0 $HISTFILE
+ truncate -s 0 "$HISTFILE"
 
 # This is the main entrypoint to workspace container in Gitpod. It is called (and controlled) by the supervisor
 # container root process.
@@ -30,5 +30,5 @@ export USER=gitpod
 [ -s /home/gitpod/.sdkman/bin/sdkman-init.sh ] && [ -z "$SDKMAN_VERSION" ] && source "/home/gitpod/.sdkman/bin/sdkman-init.sh"
 [ -s ~/.nvm/nvm-lazy.sh ] && source ~/.nvm/nvm-lazy.sh
 
-cd /theia/theia-app/app
-exec /theia/node/bin/gitpod-node ./src-gen/backend/main.js --vscode-api-version=1.53.2 $*
+cd /theia/theia-app/app || exit
+exec /theia/node/bin/gitpod-node ./src-gen/backend/main.js --vscode-api-version=1.53.2 "$@"

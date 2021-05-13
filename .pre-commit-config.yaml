@@ -19,3 +19,4 @@ repos:
         )$
     - id: script-must-have-extension
     - id: shellcheck
+      args: [-e, "SC1090,SC1091"]

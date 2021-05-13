@@ -5,11 +5,11 @@ rm -rvf dist/*.map;
 
 # ensure all files using Google Analytics have the proper format
 for i in $(find public/ -name "*.html"); do
-    if grep -q "Global site tag" $i; then
+    if grep -q "Global site tag" "$i"; then
         if ! grep -q -- "-- gtag end --" $i; then
             echo "$i does not have a gtag end marker. This would break the remove-sources.sh script."
             echo 'Please add <!-- gtag end --> after the Google Analytics block'
-            exit -1
+            exit 1
         fi
     fi
 done
