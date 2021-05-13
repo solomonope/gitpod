@@ -446,7 +446,7 @@ func (b *DockerBuilder) createBuildVolume(ctx context.Context, buildID string) (
 		Mounts: []mount.Mount{
 			{Type: mount.TypeVolume, Source: buildVolName, Target: "/workspace"},
 		},
-	}, nil, containerName)
+	}, nil, nil, containerName)
 	if err != nil {
 		return "", xerrors.Errorf("cannot create build volume: %w", err)
 	}
@@ -489,7 +489,7 @@ func (b *DockerBuilder) buildBaseImage(ctx context.Context, bld *build, src *api
 		Mounts: []mount.Mount{
 			{Type: mount.TypeVolume, Source: bld.buildVolume, Target: "/workspace"},
 		},
-	}, nil, syncContainerName)
+	}, nil, nil, syncContainerName)
 	if err != nil {
 		return xerrors.Errorf("cannot create initializer: %w", err)
 	}
@@ -607,7 +607,7 @@ func (b *DockerBuilder) buildWorkspaceImage(ctx context.Context, bld *build, bas
 		Mounts: []mount.Mount{
 			{Type: mount.TypeVolume, Source: bld.buildVolume, Target: "/workspace"},
 		},
-	}, nil, "detectdist-"+bld.ID)
+	}, nil, nil, "detectdist-"+bld.ID)
 	if err != nil {
 		return xerrors.Errorf("cannot build workspace image: %w", err)
 	}
@@ -634,7 +634,7 @@ func (b *DockerBuilder) buildWorkspaceImage(ctx context.Context, bld *build, bas
 		Mounts: []mount.Mount{
 			{Type: mount.TypeVolume, Source: bld.buildVolume, Target: "/workspace"},
 		},
-	}, nil, "dfgen-"+bld.ID)
+	}, nil, nil, "dfgen-"+bld.ID)
 	if err != nil {
 		return xerrors.Errorf("cannot build workspace image: %w", err)
 	}
