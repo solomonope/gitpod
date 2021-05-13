@@ -40,6 +40,12 @@ export async function build(context, version) {
      */
     werft.phase("prepare");
 
+    try {
+        exec(`pre-commit run --from-ref origin/HEAD --to-ref HEAD`);
+    } catch (err) {
+        werft.fail('prep', err);
+    }
+
     const werftImg = shell.exec("cat .werft/build.yaml | grep dev-environment").trim().split(": ")[1];
     const devImg = shell.exec("yq r .gitpod.yml image").trim();
     if (werftImg !== devImg) {
