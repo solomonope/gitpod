@@ -2,11 +2,6 @@ module github.com/gitpod-io/gitpod/supervisor
 
 go 1.16
 
-// containerd, see https://github.com/containerd/containerd/issues/3031
-replace github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible // leeway ignore
-
-replace github.com/docker/docker v1.13.1 => github.com/docker/engine v0.0.0-20190822205725-ed20165a37b4 // leeway ignore
-
 replace github.com/jpillora/chisel => github.com/csweichel/chisel v1.7.6-0.20210413131541-40f425137158 // leeway ignore
 
 require (
@@ -25,7 +20,6 @@ require (
 	github.com/jpillora/chisel v1.7.6
 	github.com/mailru/easygo v0.0.0-20190618140210-3c14a0dc985f
 	github.com/prometheus/procfs v0.6.0
-	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/soheilhy/cmux v0.1.4
 	github.com/spf13/cobra v1.1.1
@@ -36,7 +30,6 @@ require (
 	google.golang.org/grpc v1.37.0
 	google.golang.org/grpc/examples v0.0.0-20200902210233-8630cac324bf // indirect
 	google.golang.org/protobuf v1.26.0
-	gopkg.in/segmentio/analytics-go.v3 v3.1.0 // indirect
 )
 
 replace github.com/gitpod-io/gitpod/common-go => ../common-go // leeway

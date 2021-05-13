@@ -16,9 +16,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gitpod-io/gitpod/common-go/log"
-	"github.com/gitpod-io/gitpod/registry-facade/api"
-
 	"github.com/containerd/containerd/content"
 	"github.com/containerd/containerd/content/local"
 	"github.com/containerd/containerd/remotes"
@@ -33,6 +30,9 @@ import (
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/gitpod-io/gitpod/common-go/log"
+	"github.com/gitpod-io/gitpod/registry-facade/api"
 )
 
 // Config configures the registry

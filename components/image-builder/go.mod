@@ -2,18 +2,14 @@ module github.com/gitpod-io/gitpod/image-builder
 
 go 1.16
 
-// containerd, see https://github.com/containerd/containerd/issues/3031
-replace github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible
-
-replace github.com/docker/docker v1.13.1 => github.com/docker/engine v0.0.0-20190822205725-ed20165a37b4
-
 require (
 	github.com/alecthomas/jsonschema v0.0.0-20190504002508-159cbd5dba26
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
+	github.com/containerd/containerd v1.5.1 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/docker/cli v0.0.0-20191001124654-d83cd9046437
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v1.13.1
+	github.com/docker/docker v20.10.6+incompatible
 	github.com/docker/docker-credential-helpers v0.6.3 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/gitpod-io/gitpod/common-go v0.0.0-00010101000000-000000000000
