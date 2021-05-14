@@ -98,7 +98,7 @@ func (ws *GitInitializer) realizeCloneTarget(ctx context.Context) (err error) {
 			return err
 		}
 	} else if ws.TargetMode == LocalBranch {
-		if err := ws.Git(ctx, "checkout", "-b", ws.CloneTarget); err != nil {
+		if err := ws.Git(ctx, "checkout", "-B", ws.CloneTarget, "origin/HEAD"); err != nil {
 			return err
 		}
 	} else if ws.TargetMode == RemoteCommit {
