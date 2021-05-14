@@ -108,6 +108,7 @@ func (ws *GitInitializer) realizeCloneTarget(ctx context.Context) (err error) {
 		}
 	} else { //nolint:staticcheck
 		// nothing to do - we're already on the remote branch
+		// RemoteHead: TODO rebase/reset-hard to origin/HEAD?
 	}
 	return nil
 }
