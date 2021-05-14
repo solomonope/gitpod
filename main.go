@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -19,10 +20,15 @@ func RandStringBytes(n uint64) string {
 }
 
 func main() {
-	args := os.Args[1:]
+	argsRaw := os.Args[1:]
+	if len(argsRaw) != 1 {
+		panic(fmt.Errorf("expected exactlly 1 argument, got: %v \n", argsRaw))
+	}
+	args := strings.Split(argsRaw[0], "_")
 	if len(args) != 3 {
 		panic(fmt.Errorf("expected exactlly 3 arguments, got: %v \n", args))
 	}
+
 	chunkSize, err := strconv.ParseUint(args[0], 10, 64)
 	if err != nil {
 		panic(err)
