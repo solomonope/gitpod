@@ -638,3 +638,7 @@ rabbitmq:
         dest-uri: {{ $shovel.destUri | default "amqp://" | quote }}
         reconnect-delay: {{ $shovel.reconnectDelay | default 5 }}
     {{- end }}
+
+cert-manager:
+  enabled: true
+  installCRDs: true
