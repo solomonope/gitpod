@@ -644,3 +644,6 @@ cert-manager:
   installCRDs: true
   selfSigned:
     enabled: true
+  ca:
+    certificate:
+      secretName: gitpod-ca-certificate
