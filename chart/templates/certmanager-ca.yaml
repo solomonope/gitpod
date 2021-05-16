@@ -19,7 +19,7 @@ type: kubernetes.io/tls
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: ca-issuer
+  name: {{ $cm.ca.issuerName }}
   namespace: {{ .Release.Namespace }}
 spec:
   ca:
