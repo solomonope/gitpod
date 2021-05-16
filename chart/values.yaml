@@ -642,8 +642,7 @@ rabbitmq:
 cert-manager:
   enabled: true
   installCRDs: true
-  selfSigned:
-    enabled: true
   ca:
     certificate:
+      selfSigned: true
       secretName: gitpod-ca-certificate
