@@ -642,3 +642,6 @@ rabbitmq:
 cert-manager:
   enabled: true
   installCRDs: true
+  selfSigned:
+    enabled: true
+    
