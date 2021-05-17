@@ -8,7 +8,7 @@ import { start } from "./init";
 import { log } from "@gitpod/gitpod-protocol/lib/util/logging";
 import { Container } from "inversify";
 import { productionContainerModule } from "./container-module";
-import { dbContainerModule } from "@gitpod/gitpod-db/lib/container-module";
+import { dbContainerModule } from "@gitpod/gitpod-db/lib/src/container-module";
 
 const container = new Container();
 container.load(productionContainerModule);

@@ -20,10 +20,10 @@
         "declaration": true,
         "declarationMap": true,
         "skipLibCheck": true,
-        "rootDir": "src",
         "outDir": "lib",
     },
     "include": [
-        "src"
+        "src",
+        "ee/src",
     ]
 }

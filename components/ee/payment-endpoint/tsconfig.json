@@ -1,0 +1,34 @@
+{
+    "compilerOptions": {
+        "rootDir": "src",
+        "experimentalDecorators": true,
+        "outDir": "dist",
+        "lib": [
+            "es6",
+            "esnext.asynciterable"
+        ],
+        "forceConsistentCasingInFileNames": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "noUnusedLocals": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "noEmitOnError": false,
+        "emitDecoratorMetadata": true,
+        "strictPropertyInitialization": false,
+        "downlevelIteration": true,
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "target": "es5",
+        "jsx": "react",
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true
+    },
+    "include": [
+        "src"
+    ]
+}

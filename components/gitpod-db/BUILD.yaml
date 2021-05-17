@@ -16,6 +16,8 @@ packages:
   - name: migrations
     type: yarn
     srcs:
+      - "ee/src/typeorm/migration/**/*.ts"
+      - "ee/src/typeorm/entity/*.ts"
       - "src/typeorm/migration/**/*.ts"
       - "src/typeorm/entity/*.ts"
       - "src/typeorm/ormconfig.ts"

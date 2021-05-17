@@ -87,9 +87,9 @@ export class Env extends AbstractComponentEnv {
 
     readonly enableLocalApp = process.env.ENABLE_LOCAL_APP === "true";
 
-    readonly authProviderConfigs = this.parseAuthProviderParamss();
+    readonly authProviderConfigs = this.parseAuthProviderParams();
 
-    protected parseAuthProviderParamss(): AuthProviderParams[] {
+    protected parseAuthProviderParams(): AuthProviderParams[] {
         const envVar = getEnvVar('AUTH_PROVIDERS_CONFIG');
         return parseAuthProviderParamsFromEnv(JSON.parse(envVar));
     }

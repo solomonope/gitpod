@@ -35,6 +35,8 @@ import { TermsAcceptanceDBImpl } from './typeorm/terms-acceptance-db-impl';
 import { CodeSyncResourceDB } from './typeorm/code-sync-resource-db';
 import { WorkspaceClusterDBImpl } from './typeorm/workspace-cluster-db-impl';
 import { WorkspaceClusterDB } from './workspace-cluster-db';
+import { AuthProviderEntryDB } from './auth-provider-entry-db';
+import { AuthProviderEntryDBImpl } from './typeorm/auth-provider-entry-db-impl';
 
 // THE DB container module that contains all DB implementations
 export const dbContainerModule = new ContainerModule((bind, unbind, isBound, rebind) => {
@@ -49,6 +51,8 @@ export const dbContainerModule = new ContainerModule((bind, unbind, isBound, reb
     bind(TermsAcceptanceDBImpl).toSelf().inSingletonScope();
     bind(TermsAcceptanceDB).toService(TermsAcceptanceDBImpl);
     bindDbWithTracing(TracedUserDB, bind, UserDB).inSingletonScope();
+
+    bind(AuthProviderEntryDB).to(AuthProviderEntryDBImpl).inSingletonScope();
 
     bind(TypeORMWorkspaceDBImpl).toSelf().inSingletonScope();
     bind(WorkspaceDB).toService(TypeORMWorkspaceDBImpl);

@@ -35,3 +35,44 @@ export class UserServiceEE extends UserService {
     }
 
 }
+
+
+
+
+// @injectable()
+// export class UserServiceIO extends UserServiceEE {
+//     @inject(EligibilityService) protected readonly eligibilityService: EligibilityService;
+
+//     async getDefaultWorkspaceTimeout(user: User, date: Date): Promise<WorkspaceTimeoutDuration> {
+//         return this.eligibilityService.getDefaultWorkspaceTimeout(user, date);
+//     }
+
+//     async checkSignUp(params: CheckSignUpParams) {
+//         // no-op
+//     }
+
+//     async checkTermsAcceptanceRequired(params: CheckTermsParams): Promise<boolean> {
+//         ///////////////////////////////////////////////////////////////////////////
+//         // Currently, we don't check for ToS on login.
+//         ///////////////////////////////////////////////////////////////////////////
+        
+//         return false;
+//     }
+
+//     async checkTermsAccepted(user: User) {
+//         // called from GitpodServer implementation
+
+//         ///////////////////////////////////////////////////////////////////////////
+//         // Currently, we don't check for ToS on Gitpod API calls.
+//         ///////////////////////////////////////////////////////////////////////////
+
+//         return true;
+//     }
+
+//     protected handleNewUser(newUser: User, isFirstUser: boolean) {
+//         if (this.env.blockNewUsers) {
+//             newUser.blocked = true;
+//         }
+//     }
+
+// }
