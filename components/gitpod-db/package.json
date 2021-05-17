@@ -13,7 +13,7 @@
     "watch": "leeway exec --package .:lib --transitive-dependencies --filter-type yarn --components --parallel -- tsc -w --preserveWatchOutput",
     "db-test": "r(){ export DB_ENCRYPTION_KEYS='[{\"name\":\"general\",\"version\":1,\"primary\":true,\"material\":\"5vRrp0H4oRgdkPnX1qQcS54Q0xggr6iyho42IQ1rO+c=\"}]';export DB_HOST=127.0.0.1;export DB_PORT=23306;export DB_USER=root;export DB_PASSWORD=test; yarn db-test-run; };r",
     "db-test-run": "mocha --opts mocha.opts '**/*.spec.db.ts'",
-    "db-test-init": "r(){ export DB_ENCRYPTION_KEYS='[{\"name\":\"general\",\"version\":1,\"primary\":true,\"material\":\"5vRrp0H4oRgdkPnX1qQcS54Q0xggr6iyho42IQ1rO+c=\"}]';export DB_HOST=127.0.0.1;export DB_PORT=23306;export DB_USER=root;export DB_PASSWORD=test;find . -name \"*.sql\" | xargs cat | mysql -h $DB_HOST -P $DB_PORT -p$DB_PASSWORD -u root && yarn typeorm migrations:run; };r",
+    "db-test-init": "r(){ export DB_ENCRYPTION_KEYS='[{\"name\":\"general\",\"version\":1,\"primary\":true,\"material\":\"5vRrp0H4oRgdkPnX1qQcS54Q0xggr6iyho42IQ1rO+c=\"}]';export DB_HOST=127.0.0.1;export DB_PORT=23306;export DB_USER=root;export DB_PASSWORD=test;find . -name \"*.sql\" | xargs cat | mysql -h $DB_HOST -P $DB_PORT -p$DB_PASSWORD -u root && yarn typeorm migration:run; };r",
     "wait-for-db": "node ./lib/wait-for-db.js",
     "typeorm": "typeorm -f lib/typeorm/ormconfig",
     "clean": "yarn run rimraf lib",
@@ -25,20 +25,20 @@
   ],
   "dependencies": {
     "@gitpod/gitpod-protocol": "0.1.5",
-    "mysql": "^2.15.0",
-    "reflect-metadata": "^0.1.10",
-    "typeorm": "0.1.20",
-    "uuid": "^3.1.0"
+    "mysql": "2.18.1",
+    "reflect-metadata": "0.1.13",
+    "typeorm": "0.2.32",
+    "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.2",
-    "@types/mysql": "^2.15.0",
-    "@types/uuid": "^3.1.0",
-    "rimraf": "^2.6.1",
-    "mocha": "^4.1.0",
+    "@types/chai": "4.2.18",
+    "@types/mysql": "2.15.18",
+    "@types/uuid": "8.3.0",
+    "chai": "4.3.4",
+    "mocha": "^7.0.0",
     "mocha-typescript": "^1.1.17",
-    "chai": "^4.2.0",
-    "ts-node": "<7.0.0",
-    "typescript": "~4.1.2"
+    "rimraf": "3.0.2",
+    "ts-node": "^9.0.0",
+    "typescript": "4.2.4"
   }
 }
