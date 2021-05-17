@@ -77,6 +77,7 @@ export class UserController {
                 const returnTo = this.getSafeReturnToParam(req);
                 const search = returnTo ? `returnTo=${returnTo}` : '';
                 const loginPageUrl = this.env.hostUrl.asLogin().with({ search }).toString();
+                log.info(`Redirecting to login ${loginPageUrl}`)
                 res.redirect(loginPageUrl);
                 return;
             }
@@ -85,7 +86,7 @@ export class UserController {
             try {
                 await saveSession(req);
             } catch (error) {
-                increaseLoginCounter("failed", "unkown")
+                increaseLoginCounter("failed", "unknown")
                 log.error(`Login failed due to session save error; redirecting to /sorry`, { req, error, clientInfo });
                 res.redirect(this.getSorryUrl("Login failed 🦄 Please try again"));
             }
@@ -227,6 +228,7 @@ export class UserController {
         });
         if (this.env.enableLocalApp) {
             router.get("/auth/local-app", async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+                log.info('AUTH');
                 if (!req.isAuthenticated() || !User.is(req.user)) {
                     res.sendStatus(401);
                     return;
@@ -255,8 +257,8 @@ export class UserController {
                     scopes: [
                         "function:getWorkspaces",
                         "function:listenForWorkspaceInstanceUpdates",
-                        "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "workspace", subjectID: "*", operations: ["get"]}),
-                        "resource:"+ScopedResourceGuard.marshalResourceScope({kind: "workspaceInstance", subjectID: "*", operations: ["get"]}),
+                        "resource:" + ScopedResourceGuard.marshalResourceScope({ kind: "workspace", subjectID: "*", operations: ["get"] }),
+                        "resource:" + ScopedResourceGuard.marshalResourceScope({ kind: "workspaceInstance", subjectID: "*", operations: ["get"] }),
                     ],
                     created: new Date().toISOString(),
                 };
@@ -452,7 +454,7 @@ export class UserController {
                 return;
             }
 
-            // The user has accepted the terms.
+            // The user has approved the terms.
             log.info(logContext, '(TOS) User did agree.', logPayload);
 
             if (TosFlow.WithIdentity.is(tosFlowInfo)) {
@@ -590,6 +592,7 @@ export class UserController {
 
     protected getSafeReturnToParam(req: express.Request) {
         const returnToURL: string | undefined = req.query.redirect || req.query.returnTo;
+        log.info(`getSafe: ${returnToURL}`)
         if (returnToURL) {
             const hostUrl = this.env.hostUrl.url as URL;
             if (returnToURL.toLowerCase().startsWith(`${hostUrl.protocol}//${hostUrl.host}`.toLowerCase())) {

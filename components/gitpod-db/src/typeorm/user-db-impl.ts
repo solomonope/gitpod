@@ -4,19 +4,25 @@
  * See License-AGPL.txt in the project root for license information.
  */
 
+import * as crypto from 'crypto';
+import { GitpodToken, GitpodTokenType, Identity, IdentityLookup, Token, TokenEntry, User, UserEnvVar } from "@gitpod/gitpod-protocol";
+import { EncryptionService } from "@gitpod/gitpod-protocol/lib/encryption/encryption-service";
+import { log } from '@gitpod/gitpod-protocol/lib/util/logging';
+import { DateInterval, ExtraAccessTokenFields, GrantIdentifier, OAuthClient, OAuthScope, OAuthToken, OAuthUser } from "@jmondi/oauth2-server";
 import { inject, injectable, postConstruct } from "inversify";
-import { Identity, User, IdentityLookup, Token, TokenEntry, UserEnvVar, GitpodTokenType, GitpodToken } from "@gitpod/gitpod-protocol";
 import { EntityManager, Repository } from "typeorm";
 import * as uuidv4 from 'uuid/v4';
-import { MaybeUser, UserDB, PartialUserUpdate, BUILTIN_WORKSPACE_PROBE_USER_NAME } from "../user-db";
-import { DBUser } from './entity/db-user';
-import { TypeORM } from './typeorm';
-import { DBIdentity } from "./entity/db-identity";
-import { EncryptionService } from "@gitpod/gitpod-protocol/lib/encryption/encryption-service";
-import { DBTokenEntry } from "./entity/db-token-entry";
-import { DBUserEnvVar } from "./entity/db-user-env-vars";
+import { BUILTIN_WORKSPACE_PROBE_USER_NAME, MaybeUser, PartialUserUpdate, UserDB } from "../user-db";
 import { DBGitpodToken } from "./entity/db-gitpod-token";
+import { DBIdentity } from "./entity/db-identity";
+import { DBTokenEntry } from "./entity/db-token-entry";
+import { DBUser } from './entity/db-user';
+import { DBUserEnvVar } from "./entity/db-user-env-vars";
 import { DBWorkspace } from "./entity/db-workspace";
+import { TypeORM } from './typeorm';
+
+// OAuth token expiry
+const tokenExpiryInFuture = new DateInterval("7d");
 
 /** HACK ahead: Some entities - namely DBTokenEntry for now - need access to an EncryptionService so we publish it here */
 export let encryptionService: EncryptionService;
@@ -149,7 +155,7 @@ export class TypeORMUserDBImpl implements UserDB {
         return result.sort(order);
     }
 
-    public async findUserByGitpodToken(tokenHash: string, tokenType?: GitpodTokenType): Promise<{user: User, token: GitpodToken} | undefined> {
+    public async findUserByGitpodToken(tokenHash: string, tokenType?: GitpodTokenType): Promise<{ user: User, token: GitpodToken } | undefined> {
         const repo = await this.getGitpodTokenRepo();
         const qBuilder = repo.createQueryBuilder('gitpodToken')
             .leftJoinAndSelect("gitpodToken.user", "user");
@@ -164,7 +170,7 @@ export class TypeORMUserDBImpl implements UserDB {
             return;
         }
 
-        return {user: token.user, token};
+        return { user: token.user, token };
     }
 
     public async findAllGitpodTokensOfUser(userId: string): Promise<GitpodToken[]> {
@@ -349,6 +355,95 @@ export class TypeORMUserDBImpl implements UserDB {
 
     public async findUserByName(name: string): Promise<User | undefined> {
         return (await this.getUserRepo()).findOne({ name });
+    }
+
+    // OAuthAuthCodeRepository
+    // OAuthUserRepository
+    public async getUserByCredentials(identifier: string, password?: string, grantType?: GrantIdentifier, client?: OAuthClient): Promise<OAuthUser | undefined> {
+        log.info(`getUserByCredentials ${identifier}`)
+        const user = await this.findUserById(identifier);
+        if (user) {
+            log.info(`getUserByCredentials returned: ${user.id}, ${user.name}`)
+            return {
+                id: user.id,
+                name: user.name,
+            };
+        }
+        log.info(`getUserByCredentials returned nothing!`)
+        return;
+    }
+    public async extraAccessTokenFields?(user: OAuthUser): Promise<ExtraAccessTokenFields | undefined> {
+        // No extra fields in token
+        log.info(`getUserByCredentials ${JSON.stringify(user)}`);
+        return;
+    }
+
+    // OAuthTokenRepository
+    async issueToken(client: OAuthClient, scopes: OAuthScope[], user?: OAuthUser): Promise<OAuthToken> {
+        const expiry = tokenExpiryInFuture.getEndDate();
+        log.info(`issueToken ${JSON.stringify(expiry)}`)
+        return <OAuthToken>{
+            accessToken: crypto.randomBytes(30).toString('hex'),
+            accessTokenExpiresAt: expiry,
+            client,
+            user,
+            scopes: scopes,
+        };
+    }
+    async issueRefreshToken(accessToken: OAuthToken): Promise<OAuthToken> {
+        // NOTE(rl): this exists for the OAuth server code - Gitpod tokens are non-refreshable (atm)
+        accessToken.refreshToken = "refreshtokentoken";
+        accessToken.refreshTokenExpiresAt = new DateInterval("30d").getEndDate();
+        await this.persist(accessToken);
+        return accessToken;
+    }
+    async persist(accessToken: OAuthToken): Promise<void> {
+        log.info(`persist access token ${JSON.stringify(accessToken)}`);
+        var scopes: string[] = [];
+        for (const scope of accessToken.scopes) {
+            scopes = scopes.concat(scope.name);
+        }
+
+        // Does the token already exist?
+        var dbToken: GitpodToken & { user: DBUser };
+        const tokenHash = crypto.createHash('sha256').update(accessToken.accessToken, 'utf8').digest("hex");
+        const userAndToken = await this.findUserByGitpodToken(tokenHash);
+        if (userAndToken) {
+            // Yes, update it (~)
+            // NOTE(rl): as we don't support refresh tokens yet this is not really required 
+            // since the OAuth server lib calls issueRefreshToken immediately after issueToken
+            // We do not allow changes of name, type, user or scope.
+            dbToken = userAndToken.token as GitpodToken & { user: DBUser };
+            const repo = await this.getGitpodTokenRepo();
+            log.info(`persist access token update: ${JSON.stringify(dbToken)}`);
+            return repo.updateById(tokenHash, dbToken);
+        } else {
+            var user: MaybeUser;
+            if (accessToken.user) {
+                user = await this.findUserById(accessToken.user.id)
+            }
+            dbToken = {
+                tokenHash,
+                name: `local-app`,
+                type: GitpodTokenType.MACHINE_AUTH_TOKEN,
+                user: user as DBUser,
+                scopes: scopes,
+                created: new Date().toISOString(),
+            };
+            log.info(`persist access token store: ${JSON.stringify(dbToken)}`);
+            return this.storeGitpodToken(dbToken);
+        }
+    }
+    async revoke(accessTokenToken: OAuthToken): Promise<void> {
+        log.info(`revoke ${JSON.stringify(accessTokenToken)}`);
+        const tokenHash = crypto.createHash('sha256').update(accessTokenToken.accessToken, 'utf8').digest("hex");
+        this.deleteGitpodToken(tokenHash)
+    }
+    async isRefreshTokenRevoked(refreshToken: OAuthToken): Promise<boolean> {
+        return Date.now() > (refreshToken.refreshTokenExpiresAt?.getTime() ?? 0);
+    }
+    async getByRefreshToken(refreshTokenToken: string): Promise<OAuthToken> {
+        throw new Error("Not implemented");
     }
 }
 
