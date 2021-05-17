@@ -54,6 +54,13 @@ func main() {
 					},
 				},
 			},
+			{
+				Name: "test",
+				Action: func(c *cli.Context) error {
+					testOAuth(c.String("gitpod-host"))
+					return nil
+				},
+			},
 		},
 	}
 	err := app.Run(os.Args)

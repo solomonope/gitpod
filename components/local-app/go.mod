@@ -8,8 +8,10 @@ require (
 	github.com/jpillora/chisel v1.7.6
 	github.com/kevinburke/ssh_config v1.1.0
 	github.com/sirupsen/logrus v1.7.0
+	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/zalando/go-keyring v0.1.1
+	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c // indirect
 	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57 // indirect
 	google.golang.org/grpc v1.37.0
 )
