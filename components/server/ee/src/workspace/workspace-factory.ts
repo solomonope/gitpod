@@ -8,7 +8,7 @@ import * as uuidv4 from 'uuid/v4';
 import { WorkspaceFactory } from "../../../src/workspace/workspace-factory";
 import { injectable, inject } from "inversify";
 import { TraceContext } from "@gitpod/gitpod-protocol/lib/util/tracing";
-import { User, StartPrebuildContext, Workspace, CommitContext, PrebuiltWorkspaceContext, WorkspaceContext, WithSnapshot, WithPrebuild } from "@gitpod/gitpod-protocol";
+import { User, StartPrebuildContext, Workspace, CommitContext, PrebuiltWorkspaceContext, WorkspaceContext, WithSnapshot, WithPrebuild, TaskConfig } from "@gitpod/gitpod-protocol";
 import { log } from '@gitpod/gitpod-protocol/lib/util/logging';
 import { LicenseEvaluator } from '@gitpod/licensor/lib';
 import { Feature } from '@gitpod/licensor/lib/api';
@@ -66,10 +66,10 @@ export class WorkspaceFactoryEE extends WorkspaceFactory {
                 if (!parentPrebuild) {
                     continue;
                 }
-                log.debug(`Considering parent prebuild for ${commitContext.revision}`, parentPrebuild);
                 if (parentPrebuild.state !== 'available') {
                     continue;
                 }
+                log.debug(`Considering parent prebuild for ${commitContext.revision}`, parentPrebuild);
                 const buildWorkspace = await this.db.trace({span}).findById(parentPrebuild.buildWorkspaceId);
                 if (!buildWorkspace) {
                     continue;
@@ -77,10 +77,26 @@ export class WorkspaceFactoryEE extends WorkspaceFactory {
                 if (!!buildWorkspace.basedOnPrebuildId) {
                     continue;
                 }
-                if (buildWorkspace.imageSource !== imageSource) {
+                if (JSON.stringify(imageSource) !== JSON.stringify(buildWorkspace.imageSource)) {
+                    log.debug(`Skipping parent prebuild: Outdated image`, {
+                        imageSource,
+                        parentImageSource: buildWorkspace.imageSource,
+                    });
                     continue;
                 }
-                if (buildWorkspace.config.tasks !== config.tasks) {
+                const filterPrebuildTasks = (tasks: TaskConfig[] = []) => (tasks
+                    .map(task => Object.keys(task)
+                        .filter(key => ['before', 'init', 'prebuild'].includes(key))
+                        // @ts-ignore
+                        .reduce((obj, key) => ({ ...obj, [key]: task[key] }), {}))
+                    .filter(task => Object.keys(task).length > 0));
+                const prebuildTasks = filterPrebuildTasks(config.tasks);
+                const parentPrebuildTasks = filterPrebuildTasks(buildWorkspace.config.tasks);
+                if (JSON.stringify(prebuildTasks) !== JSON.stringify(parentPrebuildTasks)) {
+                    log.debug(`Skipping parent prebuild: Outdated prebuild tasks`, {
+                        prebuildTasks,
+                        parentPrebuildTasks,
+                    });
                     continue;
                 }
                 const incrementalPrebuildContext: PrebuiltWorkspaceContext = {
