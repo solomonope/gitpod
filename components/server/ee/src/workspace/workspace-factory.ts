@@ -56,9 +56,11 @@ export class WorkspaceFactoryEE extends WorkspaceFactory {
                 }
             }
 
-            let ws;
+            const config = await this.configProvider.fetchConfig({span}, user, context.actual);
+            const imageSource = await this.imageSourceProvider.getImageSource(ctx, user, context.actual, config);
 
-            // Find an older full prebuild to start an incremental prebuild
+            // Walk back the commit history to find suitable parent prebuild to start an incremental prebuild on.
+            let ws;
             for (const parent of (context.commitHistory || [])) {
                 const parentPrebuild = await this.db.trace({span}).findPrebuiltWorkspaceByCommit(commitContext.repository.cloneUrl, parent);
                 if (!parentPrebuild) {
@@ -75,7 +77,12 @@ export class WorkspaceFactoryEE extends WorkspaceFactory {
                 if (!!buildWorkspace.basedOnPrebuildId) {
                     continue;
                 }
-                // FIXME: If the workspace image (ref or dockerfile commit) has changed, or if the prebuild tasks have changed, the prebuild is no longer relevant
+                if (buildWorkspace.imageSource !== imageSource) {
+                    continue;
+                }
+                if (buildWorkspace.config.tasks !== config.tasks) {
+                    continue;
+                }
                 const incrementalPrebuildContext: PrebuiltWorkspaceContext = {
                     title: `Incremental prebuild of "${commitContext.title}"`,
                     originalContext: commitContext,
@@ -86,6 +93,7 @@ export class WorkspaceFactoryEE extends WorkspaceFactory {
             }
 
             if (!ws) {
+                // No suitable parent prebuild was found -- create a (fresh) full prebuild.
                 ws = await this.createForCommit({span}, user, commitContext, normalizedContextURL);
             }
             ws.type = "prebuild";
