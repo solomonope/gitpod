@@ -31,7 +31,7 @@ ports:
   - port: 13444
 tasks:
   - name: Test Command
-    init: export PARAMS=${PARAMS:-"100_200ms_10s"}; go run ./main.go $PARAMS
+    init: export PARAMS=${PARAMS:-"100_200ms_5m"}; go run ./main.go $PARAMS
 vscode:
   extensions:
     - hangxingliu.vscode-nginx-conf-hint
