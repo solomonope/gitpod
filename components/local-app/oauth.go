@@ -18,6 +18,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/oauth2"
 )
@@ -118,7 +119,12 @@ func testOAuth(gitpodHost string) error {
 	conf := &oauth2.Config{
 		ClientID:     "gplctl-1.0",
 		ClientSecret: "gplctl-1.0-secret", // Required (even though it is marked as optional?!)
-		Scopes:       []string{"function:getWorkspace"},
+		Scopes: []string{
+			"function:getWorkspace",
+			"function:listenForWorkspaceInstanceUpdates",
+			"resource:workspace::*::get",
+			"resource:workspaceInstance::*::get",
+		},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  authURL.String(),
 			TokenURL: tokenURL.String(),
@@ -172,7 +178,28 @@ func testOAuth(gitpodHost string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	log.Printf("TOK: %#v\n", tok)
+
+	// Extract Gitpod token from OAuth token (JWT)
+	claims := jwt.MapClaims{}
+	parser := new(jwt.Parser)
+	gitpodToken, _, err := parser.ParseUnverified(tok.AccessToken, &claims)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// gitpodToken, err := jwt.ParseWithClaims(tok.AccessToken, &claims, func(token *jwt.Token) (interface{}, error) {
+	// 	return []byte("secret secret secret"), nil
+	// })
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// if !gitpodToken.Valid {
+	// 	log.Println("OAuth2 token invalid... exiting")
+	// 	os.Exit(1)
+	// }
+
+	log.Printf("Gitpod: %#v\n%#v\n", claims, gitpodToken)
 
 	// client := conf.Client(ctx, tok)
 	// client.Get("...")
