@@ -162,17 +162,17 @@ func (s *WorkspaceService) InitWorkspace(ctx context.Context, req *api.InitWorks
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid content manifest: %s", err.Error())
 		}
-
-		wscont, err := s.runtime.WaitForContainer(ctx, req.Id)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "cannot find workspace container: %s", err.Error())
-		}
-		upperdir, err = s.runtime.ContainerUpperdir(ctx, wscont)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "cannot find workspace upperdir: %s", err.Error())
-		}
-		log.WithField("cid", wscontainerID).WithField("upperdir", upperdir).Debug("workspace container found")
-
+		/*
+			wscont, err := s.runtime.WaitForContainer(ctx, req.Id)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "cannot find workspace container: %s", err.Error())
+			}
+			upperdir, err = s.runtime.ContainerUpperdir(ctx, wscont)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "cannot find workspace upperdir: %s", err.Error())
+			}
+			log.WithField("cid", wscontainerID).WithField("upperdir", upperdir).Debug("workspace container found")
+		*/
 		// This this point the workspace content is present and initialized because it was part of the container image.
 		// There is no need to wait for the ready file here.
 	} else {
