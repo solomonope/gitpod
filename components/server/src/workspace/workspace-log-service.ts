@@ -27,7 +27,7 @@ export interface WorkspaceLogStream {
 
 @injectable()
 export class WorkspaceLogService {
-    static readonly SUPERVISOR_API_PATH = "/_supervisor/v1/ws";
+    static readonly SUPERVISOR_API_PATH = "/_supervisor/v1";
 
     @inject(WorkspaceDB) protected readonly db: WorkspaceDB;
     @inject(Env) protected readonly env: Env;
