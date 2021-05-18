@@ -74,6 +74,8 @@ import { IDEPluginServiceClient } from '@gitpod/content-service/lib/ideplugin_gr
 import { GitTokenScopeGuesser } from './workspace/git-token-scope-guesser';
 import { GitTokenValidator } from './workspace/git-token-validator';
 import { newAnalyticsWriterFromEnv, IAnalyticsWriter } from '@gitpod/gitpod-protocol/lib/util/analytics';
+import { WorkspaceLogService } from './workspace/workspace-log-service';
+import { HeadlessLogController } from './workspace/headless-log-controller';
 
 export const productionContainerModule = new ContainerModule((bind, unbind, isBound, rebind) => {
     bind(Env).toSelf().inSingletonScope();
@@ -116,8 +118,11 @@ export const productionContainerModule = new ContainerModule((bind, unbind, isBo
     bind(IClientDataPrometheusAdapter).to(ClientDataPrometheusAdapterImpl).inSingletonScope();
 
     bind(GitpodServerImpl).toSelf();
-    bind(WebsocketConnectionManager).toDynamicValue(ctx =>
-        new WebsocketConnectionManager<GitpodClient, GitpodServer>(() => ctx.container.get<GitpodServerImpl<GitpodClient, GitpodServer>>(GitpodServerImpl))
+    bind(WebsocketConnectionManager).toDynamicValue(ctx => {
+            const serverFactory = () => ctx.container.get<GitpodServerImpl<GitpodClient, GitpodServer>>(GitpodServerImpl);
+            const hostContextProvider = ctx.container.get<HostContextProvider>(HostContextProvider);
+            return new WebsocketConnectionManager<GitpodClient, GitpodServer>(serverFactory, hostContextProvider);
+        }
     ).inSingletonScope();
 
     bind(ImageBuilderClientConfig).toDynamicValue(() => {
@@ -188,4 +193,7 @@ export const productionContainerModule = new ContainerModule((bind, unbind, isBo
     bind(CodeSyncService).toSelf().inSingletonScope();
 
     bind(IAnalyticsWriter).toDynamicValue(newAnalyticsWriterFromEnv).inSingletonScope();
+
+    bind(WorkspaceLogService).toSelf().inSingletonScope();
+    bind(HeadlessLogController).toSelf().inSingletonScope();
 });

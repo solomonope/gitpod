@@ -17,4 +17,8 @@ export class RepositoryService {
     async installAutomatedPrebuilds(user: User, cloneUrl: string): Promise<void> {
         throw new Error('unsupported');
     }
+
+    async canAccessHeadlessLogs(user: User, cloneUrl: string): Promise<boolean> {
+        return false;
+    }
 }

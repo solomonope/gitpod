@@ -33,6 +33,7 @@ import * as uuidv4 from 'uuid/v4';
 import { DBUser } from "@gitpod/gitpod-db";
 import { ScopedResourceGuard } from "../auth/resource-access";
 import { OneTimeSecretServer } from '../one-time-secret-server';
+import { ownerTokenCookieName } from '../workspace/owner-cookie';
 
 @injectable()
 export class UserController {
@@ -210,18 +211,15 @@ export class UserController {
                 return;
             }
 
-            let cookiePrefix: string = this.env.hostUrl.url.host;
-            cookiePrefix = cookiePrefix.replace(/^https?/, '');
-            [" ", "-", "."].forEach(c => cookiePrefix = cookiePrefix.split(c).join("_"));
-
-            const name = `_${cookiePrefix}_ws_${instanceID}_owner_`;
+            const gitpodHost = this.env.hostUrl.url.host;
+            const name = ownerTokenCookieName(gitpodHost, instance.id);
             res.cookie(name, token, {
                 path: "/",
                 httpOnly: false,
                 secure: false,
                 maxAge: 1000 * 60 * 60 * 24 * 1,    // 1 day
                 sameSite: "lax",                    // default: true. "Lax" needed for cookie to work in the workspace domain.
-                domain: `.${this.env.hostUrl.url.host}`
+                domain: `.${gitpodHost}`
             });
             res.sendStatus(200);
         });
