@@ -68,7 +68,6 @@ export class WorkspaceLogService {
                 stream.cancel();
             });
             stream.on('end', (status?: Status) => {
-                console.log("end status: " + JSON.stringify(status));
                 if (status && status.code !== grpcStatus.OK) {
                     const err = new Error(`upstream ended with status code: ${status.code}`);
                     (err as any).status = status;
@@ -106,7 +105,6 @@ export class WorkspaceLogService {
                 });   
         });
         streamResp.on('end', (status?: Status) => {
-            console.log("end status: " + JSON.stringify(status));
             let err: Error | undefined = undefined;
             if (status && status.code !== grpcStatus.OK) {
                 err = new Error(`upstream ended with status code: ${status.code}`);

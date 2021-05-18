@@ -20,12 +20,20 @@ export class GitHubService extends RepositoryService {
             return false;
         }
 
-        const result: any = await this.githubQueryApi.runQuery(user, `
-            query {
-                repository(name: "${context.repository.name}", owner: "${context.repository.owner}", viewerPermission: "READ") {
+
+        try {
+            // If you have no "viewerPermission" on a repository you may not access it's headless logs
+            // Ref: https://docs.github.com/en/graphql/reference/enums#repositorypermission
+            const result: any = await this.githubQueryApi.runQuery(user, `
+                query {
+                    repository(name: "${context.repository.name}", owner: "${context.repository.owner}") {
+                        viewerPermission
+                    }
                 }
-            }
-        `);
-        return result.data.repository !== null;
+            `);
+            return result.data.repository !== null;
+        } catch (err) {
+            return false;
+        }
     }
 }

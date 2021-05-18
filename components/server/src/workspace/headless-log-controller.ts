@@ -58,24 +58,24 @@ export class HeadlessLogController {
                 return;
             }
 
-            // [gpl] It's a bit sad that we have to duplicate this access check... but that's due to the way our API code is written
-            const resourceGuard = new CompositeResourceAccessGuard([
-                new OwnerResourceGuard(user.id),
-                new WorkspaceLogAccessGuard(() => Promise.resolve(user), this.hostContextProvider),
-            ]);
-            if (!resourceGuard.canAccess({ kind: 'workspaceLog', subject: workspace }, 'get')) {
-                res.sendStatus(403);
-                log.warn("unauthenticated workspace cookie fetch", { instanceId });
-                return;
-            }
-
-            const workspaceLog = await this.workspaceLogService.getWorkspaceLog(instance, params.terminalId);
-            if (!workspaceLog) {
-                res.sendStatus(404);
-                return;
-            }
-
             try {
+                // [gpl] It's a bit sad that we have to duplicate this access check... but that's due to the way our API code is written
+                const resourceGuard = new CompositeResourceAccessGuard([
+                    new OwnerResourceGuard(user.id),
+                    new WorkspaceLogAccessGuard(() => Promise.resolve(user), this.hostContextProvider),
+                ]);
+                if (!await resourceGuard.canAccess({ kind: 'workspaceLog', subject: workspace }, 'get')) {
+                    res.sendStatus(403);
+                    log.warn("unauthenticated workspace cookie fetch", { instanceId });
+                    return;
+                }
+
+                const workspaceLog = await this.workspaceLogService.getWorkspaceLog(instance, params.terminalId);
+                if (!workspaceLog) {
+                    res.sendStatus(404);
+                    return;
+                }
+
                 await new Promise<void>((resolve, reject) => {
                     const { stream } = workspaceLog;
                     stream.forEach((c) => new Promise<void>((resolve, reject) => {
