@@ -24,6 +24,7 @@ import (
 	"time"
 
 	grpcruntime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/prometheus/procfs"
 	"github.com/soheilhy/cmux"
 	"golang.org/x/sys/unix"
@@ -633,6 +634,7 @@ func startAPIEndpoint(ctx context.Context, cfg *Config, wg *sync.WaitGroup, serv
 
 	httpMux := m.Match(cmux.HTTP1Fast())
 	routes := http.NewServeMux()
+	routes.Handle("/_supervisor/v1/ws", grpcweb.WrapServer(grpcServer))
 	routes.Handle("/_supervisor/v1/", http.StripPrefix("/_supervisor", restMux))
 	routes.Handle("/_supervisor/frontend", http.FileServer(http.Dir(cfg.FrontendLocation)))
 	if cfg.DebugEnable {
