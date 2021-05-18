@@ -4,7 +4,7 @@
  * See License-AGPL.txt in the project root for license information.
  */
 
-import { User } from "@gitpod/gitpod-protocol";
+import { User, WorkspaceContext } from "@gitpod/gitpod-protocol";
 import { injectable } from "inversify";
 
 @injectable()
@@ -18,7 +18,7 @@ export class RepositoryService {
         throw new Error('unsupported');
     }
 
-    async canAccessHeadlessLogs(user: User, cloneUrl: string): Promise<boolean> {
+    async canAccessHeadlessLogs(user: User, context: WorkspaceContext): Promise<boolean> {
         return false;
     }
 }

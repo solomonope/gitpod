@@ -445,6 +445,6 @@ export class WorkspaceLogAccessGuard implements ResourceAccessGuard {
             throw new Error(`no services found in HostContext for hostname: ${url.hostname}`);
         }
         const user = await this.getUser();
-        return svcs.repositoryService.canAccessHeadlessLogs(user, ws.contextURL);
+        return svcs.repositoryService.canAccessHeadlessLogs(user, ws.context);
     }
 }
