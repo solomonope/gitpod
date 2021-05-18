@@ -146,9 +146,9 @@ func (s *WorkspaceService) InitWorkspace(ctx context.Context, req *api.InitWorks
 	log.Info("InitWorkspace called")
 
 	var (
-		wsloc         string
-		upperdir      string
-		wscontainerID container.ID
+		wsloc    string
+		upperdir string
+		//wscontainerID container.ID
 	)
 	if req.FullWorkspaceBackup {
 		if s.runtime == nil {
