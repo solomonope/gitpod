@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	stdlog "log"
 	"net"
 	"net/http"
 	"os"
@@ -30,6 +31,7 @@ import (
 	"github.com/soheilhy/cmux"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 
 	"github.com/gitpod-io/gitpod/common-go/analytics"
 	"github.com/gitpod-io/gitpod/common-go/log"
@@ -636,6 +638,7 @@ func startAPIEndpoint(ctx context.Context, cfg *Config, wg *sync.WaitGroup, serv
 	httpMux := m.Match(cmux.HTTP1Fast())
 	routes := http.NewServeMux()
 	grpcWebServer := grpcweb.WrapServer(grpcServer)
+	grpclog.SetLogger(stdlog.New(os.Stdout, "grpcWebServer: ", stdlog.LstdFlags))
 	routes.Handle("/_supervisor/v1/", http.StripPrefix("/_supervisor", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.Header.Get("Content-Type"), "application/grpc") ||
 			websocket.IsWebSocketUpgrade(r) {
