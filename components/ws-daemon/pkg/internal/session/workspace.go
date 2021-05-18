@@ -27,9 +27,6 @@ const (
 	// AttrRemoteStorage is the name of the remote storage associated with a workspace.
 	// Expect this to be an instance of storage.RemoteStorage
 	AttrRemoteStorage = "remote-storage"
-	// AttrLiveBackup is the name of the live backup associated with a workspace.
-	// Expect this to be an instance of *safetynet.LiveBackup
-	AttrLiveBackup = "live-backup"
 
 	// AttrWorkspaceServer is the name of the workspace server cancel func.
 	// Expect this to be an instance of context.CancelFunc
