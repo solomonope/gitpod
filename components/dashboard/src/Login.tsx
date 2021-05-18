@@ -50,6 +50,23 @@ export function Login() {
         })();
     }, [])
 
+    const authorizeSuccessful = async (payload?: string) => {
+        updateUser();
+        // Check for a valid returnTo in payload
+        const safeReturnTo = getSafeURLRedirect(payload);
+        if (safeReturnTo) {
+            // ... and if it is, redirect to it 
+            window.location.replace(safeReturnTo);
+        }
+    }
+
+    const updateUser = async () => {
+        await getGitpodService().reconnect();
+        const user = await getGitpodService().server.getLoggedInUser();
+        setUser(user);
+        markLoggedIn();
+    }
+
     const openLogin = async (host: string) => {
         setErrorMessage(undefined);
 
@@ -57,7 +74,7 @@ export function Login() {
             await openAuthorizeWindow({
                 login: true,
                 host,
-                onSuccess: (payload?: string) => authorizeSuccessful(payload),
+                onSuccess: authorizeSuccessful,
                 onError: (payload) => {
                     let errorMessage: string;
                     if (typeof payload === "string") {
@@ -74,23 +91,6 @@ export function Login() {
         } catch (error) {
             console.log(error)
         }
-    }
-
-    const authorizeSuccessful = async (payload?: string) => {
-        updateUser();
-        // Check for a valid returnTo in payload
-        const safeReturnTo = getSafeURLRedirect(payload);
-        if (safeReturnTo) {
-            // ... and if it is, redirect to it 
-            window.location.replace(safeReturnTo);
-        }
-    }
-
-    const updateUser = async () => {
-        await getGitpodService().reconnect();
-        const user = await getGitpodService().server.getLoggedInUser();
-        setUser(user);
-        markLoggedIn();
     }
 
     return (<div id="login-container" className="z-50 flex w-screen h-screen">
