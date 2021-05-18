@@ -646,11 +646,6 @@ func (wbs *InWorkspaceServiceServer) Teardown(ctx context.Context, req *api.Tear
 		success = true
 		err     error
 	)
-	err = wbs.performLiveBackup()
-	if err != nil {
-		log.WithError(err).WithFields(owi).Error("FWB teardown failed")
-		success = false
-	}
 
 	err = wbs.unPrepareForUserNS()
 	if err != nil {
@@ -659,24 +654,6 @@ func (wbs *InWorkspaceServiceServer) Teardown(ctx context.Context, req *api.Tear
 	}
 
 	return &api.TeardownResponse{Success: success}, nil
-}
-
-func (wbs *InWorkspaceServiceServer) performLiveBackup() error {
-	if !wbs.Session.FullWorkspaceBackup {
-		return nil
-	}
-
-	lb, ok := wbs.Session.NonPersistentAttrs[session.AttrLiveBackup].(*LiveWorkspaceBackup)
-	if lb == nil || !ok {
-		return xerrors.Errorf("FWB workspace has no associated live backup")
-	}
-
-	_, err := lb.Backup()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (wbs *InWorkspaceServiceServer) unPrepareForUserNS() error {

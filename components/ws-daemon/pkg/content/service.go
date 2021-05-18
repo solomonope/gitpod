@@ -428,16 +428,10 @@ func (s *WorkspaceService) uploadWorkspaceContent(ctx context.Context, sess *ses
 		opts []storage.UploadOption
 		mf   csapi.WorkspaceContentManifest
 	)
-	if sess.FullWorkspaceBackup {
-		lb, ok := sess.NonPersistentAttrs[session.AttrLiveBackup].(*iws.LiveWorkspaceBackup)
-		if lb == nil || !ok {
-			return xerrors.Errorf("workspace has no live backup configured")
-		}
 
-		loc, err = lb.Latest()
-		if err != nil {
-			return xerrors.Errorf("no live backup available: %w", err)
-		}
+	if sess.FullWorkspaceBackup {
+		// Backup any change located in the upper overlay directory of the workspace in the node
+		loc = filepath.Join(sess.ServiceLocDaemon, "upper")
 
 		err = json.Unmarshal(sess.ContentManifest, &mf)
 		if err != nil {
@@ -445,7 +439,7 @@ func (s *WorkspaceService) uploadWorkspaceContent(ctx context.Context, sess *ses
 		}
 	}
 
-	err = os.Remove(filepath.Join(loc, wsinit.WorkspaceReadyFile))
+	err = os.Remove(filepath.Join(sess.Location, wsinit.WorkspaceReadyFile))
 	if err != nil && !os.IsNotExist(err) {
 		// We'll still upload the backup, well aware that the UX during restart will be broken.
 		// But it's better to have a backup with all files (albeit one too many), than having no backup at all.
@@ -696,18 +690,6 @@ func (s *WorkspaceService) TakeSnapshot(ctx context.Context, req *api.TakeSnapsh
 		log.WithFields(sess.OWI()).WithError(err).Error("cannot upload snapshot: no remote storage configured")
 		return nil, status.Error(codes.Internal, "workspace has no remote storage")
 	}
-	if sess.FullWorkspaceBackup {
-		lb, ok := sess.NonPersistentAttrs[session.AttrLiveBackup].(*iws.LiveWorkspaceBackup)
-		if lb == nil || !ok {
-			log.WithFields(sess.OWI()).WithError(err).Error("cannot upload snapshot: no live backup available")
-			return nil, status.Error(codes.Internal, "workspace has no live backup")
-		}
-		_, err = lb.Backup()
-		if err != nil {
-			log.WithFields(sess.OWI()).WithError(err).Error("cannot upload snapshot: live backup failed")
-			return nil, status.Error(codes.Internal, "cannot upload snapshot")
-		}
-	}
 
 	var (
 		baseName     = fmt.Sprintf("snapshot-%d", time.Now().UnixNano())
@@ -794,43 +776,12 @@ func workspaceLifecycleHooks(cfg Config, kubernetesNamespace string, workspaceEx
 			ws.NonPersistentAttrs[session.AttrRemoteStorage] = remoteStorage
 		}
 
-		if _, ok := ws.NonPersistentAttrs[session.AttrLiveBackup]; ws.FullWorkspaceBackup && !ok {
-			ws.NonPersistentAttrs[session.AttrLiveBackup] = &iws.LiveWorkspaceBackup{
-				OWI:         ws.OWI(),
-				Location:    ws.UpperdirLocation,
-				Destination: filepath.Join(cfg.FullWorkspaceBackup.WorkDir, ws.InstanceID),
-			}
-		}
-
 		return nil
-	}
-	var startLiveBackup session.WorkspaceLivecycleHook = func(ctx context.Context, ws *session.Workspace) (err error) {
-		if !ws.FullWorkspaceBackup {
-			return
-		}
-
-		lbr, ok := ws.NonPersistentAttrs[session.AttrLiveBackup]
-		if lbr == nil || !ok {
-			log.WithFields(ws.OWI()).Warn("workspace is ready but did not have a live backup")
-
-			ws.NonPersistentAttrs[session.AttrLiveBackup] = &iws.LiveWorkspaceBackup{
-				OWI:         ws.OWI(),
-				Location:    ws.UpperdirLocation,
-				Destination: filepath.Join(cfg.FullWorkspaceBackup.WorkDir, ws.InstanceID),
-			}
-		}
-
-		lb, ok := lbr.(*iws.LiveWorkspaceBackup)
-		if lbr == nil || !ok {
-			return xerrors.Errorf("cannot start live backup - expected *LiveWorkspaceBackup")
-		}
-
-		return lb.Start()
 	}
 
 	return map[session.WorkspaceState][]session.WorkspaceLivecycleHook{
 		session.WorkspaceInitializing: {setupWorkspace, iws.ServeWorkspace(uidmapper, api.FSShiftMethod(cfg.UserNamespaces.FSShift))},
-		session.WorkspaceReady:        {setupWorkspace, startLiveBackup},
+		session.WorkspaceReady:        {setupWorkspace},
 		session.WorkspaceDisposing:    {iws.StopServingWorkspace},
 	}
 }
